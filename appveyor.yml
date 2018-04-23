@@ -1,0 +1,39 @@
+# version format
+version: 1.0-{build}
+
+init:
+  - git config --global core.autocrlf input
+
+environment:
+  global:
+    MSYS2_ARCH: i686
+    TARGET: i686_32-pc-msys
+    
+# appveyor pushes a tag which triggers a build which pushes a tag which triggers a build which pushes a tag...
+# so don't build tags
+skip_tags: true
+
+install:
+  - set PATH=C:\msys64\usr\bin;%PATH%
+  - set PATH=C:\msys64\mingw32\bin;%PATH%
+  - copy C:\msys64\mingw32\bin\windres.exe C:\msys64\mingw32\bin\i686-w64-mingw32-windres.exe
+
+build_script:
+  - windres.exe -v --input-format=rc --output-format=coff en_resource.rc -o en_resource.res
+  - gcc -Os -m32 -s -o en_mod.aul -shared -Wl,-s en_resource.res
+  - mkdir aviutl-english
+  - copy en_mod.aul aviutl-english\en_mod.aul
+  - 7z a -mx9 aviutl-english-latest.7z aviutl-english
+  - appveyor PushArtifact aviutl-english-latest.7z
+
+deploy:
+  release: aviutl-english-$(appveyor_build_version)
+  description: 'New English language pack release'
+  provider: GitHub
+  auth_token:
+    secure: UMqoxyUgzjPt6MA6XoZIPjbdlrmby1OB2QGnX9QEvAXi+7LciNolOq1QI6TG3cOp
+  artifact: aviutl-english-latest.7z
+  draft: false
+  prerelease: false
+  on:
+    branch: master
